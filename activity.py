@@ -34,25 +34,54 @@ from sugar3.activity.widgets import TitleEntry
 from sugar3.activity.widgets import StopButton
 from sugar3.activity.widgets import ShareButton
 
-base = os.environ['SUGAR_BUNDLE_PATH']
-os.chdir(base)
-
-qtlib = os.path.join(base, 'qt/lib/')
-new_env = copy.copy(os.environ)
-new_env['LD_LIBRARY_PATH'] = qtlib
+import pilas
+from pilas.motores.motor_gtk import GtkBase
+from pilas.console import console_widget
 
 
-class PilasActivity(activity.Activity):
+class ActivityMotor(activity.Activity, GtkBase):
+
+    def __init__(self, handle):
+        activity.Activity.__init__(self, handle)
+        GtkBase.__init__(self)
+
+
+class PilasActivity(ActivityMotor):
     """Pilas class as specified in activity.info"""
 
     def __init__(self, handle):
         """Set up the Pilas activity."""
-        activity.Activity.__init__(self, handle)
+        ActivityMotor.__init__(self, handle)
 
         # we do not have collaboration features,
         # make the share option insensitive
         self.max_participants = 1
 
+        self.make_toolbar()
+
+        # Pilas
+        vbox = Gtk.VBox()
+        self.set_canvas(vbox)
+
+        pilas.iniciar(motor=self)
+
+        horizontalLayout = Gtk.HBox()
+        vbox.pack_start(horizontalLayout, True, True, 0)
+
+        #Crear actor
+        self.mono = pilas.actores.Mono()
+        pilas.eventos.click_de_mouse.conectar(self.sonreir)
+
+        # Agrega la Consola
+        locals = {'pilas': pilas, 'mono': self.mono}
+        self.consoleWidget = console_widget.ConsoleWidget(locals)
+        vbox.pack_start(self.consoleWidget, True, True, 0)
+
+        self.connect("destroy", Gtk.main_quit)
+
+        self.show_all()
+
+    def make_toolbar(self):
         # toolbar with the new toolbar redesign
         toolbar_box = ToolbarBox()
 
@@ -81,18 +110,6 @@ class PilasActivity(activity.Activity):
         self.set_toolbar_box(toolbar_box)
         toolbar_box.show()
 
-        socket = Gtk.Socket()
-        socket.connect("plug-added", self._on_plugged_event)
-        socket.set_can_focus(True)
-        self.set_canvas(socket)
-        self.set_focus(socket)
-        socket.show()
-
-        screen_width = Gdk.Screen.width()
-        screen_height = Gdk.Screen.height()
-
-        #subprocess.Popen(["python", "pilas_plug.py", str(socket.get_id()),
-        #       str(screen_width), str(screen_height)], env=new_env)
-
-    def _on_plugged_event(self, widget):
-        logging.info("Plug inserted")
+    def sonreir(self, evento):
+        #self.mono.sonreir()
+        pass

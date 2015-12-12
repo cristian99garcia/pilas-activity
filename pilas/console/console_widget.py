@@ -42,16 +42,16 @@ class ConsoleWidget(Gtk.ScrolledWindow):
 
         self.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
+        lang_manager = GtkSource.LanguageManager()
+        self.buffer = GtkSource.Buffer()
+        self.buffer.set_max_undo_levels(0)
+        self.buffer.set_language(lang_manager.get_language('python'))
+
         self.view = GtkSource.View()
+        self.view.set_buffer(self.buffer)
         self.view.set_tooltip_text("Show/Hide (F4)")
         self.view.connect("key-press-event", self.keyPressEvent)
         self.add(self.view)
-
-        lang_manager = GtkSource.LanguageManager()
-
-        self.buffer = self.view.get_buffer()
-        self.buffer.set_max_undo_levels(0)
-        self.buffer.set_language(lang_manager.get_language('python'))
 
         self.prompt = '>>> '
         self._console = console.Console(locals)

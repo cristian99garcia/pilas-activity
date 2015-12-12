@@ -421,15 +421,17 @@ class GtkActor(BaseActor):
 class GtkSonido:
 
     def __init__(self, ruta):
-        import pygame
-        pygame.mixer.init()
-        pygame.mixer.init()
-        self.sonido = pygame.mixer.Sound(ruta)
+        try:
+            import pygame
+            pygame.mixer.init()
+            self.sonido = pygame.mixer.Sound(ruta)
+
+        except (ImportError, pygame.error):
+            self.sonido = None
 
     def reproducir(self):
-        # TODO: quitar esta nota...
-        # print "Usando pygame para reproducir sonido"
-        self.sonido.play()
+        if self.sonido != None:
+            self.sonido.play()
 
 
 class GtkBase(motor.Motor):

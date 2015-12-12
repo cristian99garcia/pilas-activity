@@ -1,13 +1,9 @@
 import sys
 
-import gi
-gi.require_version('Gtk', '3.0')
-
 from gi.repository import Gtk
 
 import pilas
 from pilas.motores.motor_gtk import GtkMotor
-
 from pilas.console import console_widget
 
 
@@ -15,9 +11,6 @@ class Window(GtkMotor):
 
     def __init__(self, parent=None, pilas_width=320, pilas_height=240):
         GtkMotor.__init__(self)
-
-        if (parent != None):
-            self.set_transient_for(parent)
 
         self.set_title("Hola")
 
