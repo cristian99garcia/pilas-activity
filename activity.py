@@ -46,21 +46,25 @@ class PilasActivity(ActivityBase):
         # Pilas
         pilas.iniciar(motor=self)
 
+        box = Gtk.VBox()
+
+        self.canvas.get_parent().remove(self.canvas)
+        box.pack_start(self.canvas, True, True, 0)
+
         #Crear actor
         self.mono = pilas.actores.Mono()
+        self.mono.x = 200
         pilas.eventos.click_de_mouse.conectar(self.sonreir)
 
         # Agrega la Consola
         locals = {'pilas': pilas, 'mono': self.mono}
         self.consoleWidget = console_widget.ConsoleWidget(locals)
         self.consoleWidget.set_size_request(1, 200)
-        self.box.pack_start(self.consoleWidget, True, True, 0)
-        #self.set_canvas(self.consoleWidget)
+        box.pack_end(self.consoleWidget, False, False, 0)
 
-        self.connect("destroy", Gtk.main_quit)
-
+        self.set_canvas(box)
         self.show_all()
 
     def sonreir(self, evento):
-        #self.mono.sonreir()
-        pass
+        self.mono.sonreir()
+

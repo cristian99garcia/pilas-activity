@@ -33,6 +33,7 @@ class Tarea(object):
     def eliminar(self):
         self.activa = False
 
+
 class TareaCondicional(Tarea):
 
     def ejecutar(self):
@@ -40,6 +41,7 @@ class TareaCondicional(Tarea):
 
         if not retorno:
             self.una_vez = True
+
 
 class Tareas(object):
     """Contenedor de tareas a ejecutar por tiempo.
@@ -79,17 +81,21 @@ class Tareas(object):
                 
                     if tarea.una_vez:
                         self.tareas_planificadas.remove(tarea)
+
                     else:
                         w = self.contador_de_tiempo - tarea.time_out
-                        parte_entera = int((w)/float(tarea.dt))
+                        parte_entera = int((w) / float(tarea.dt))
                         resto = w - (parte_entera * tarea.dt)
 
                         for x in range(parte_entera):
                             tarea.ejecutar()
 
                         tarea.time_out += tarea.dt + (parte_entera * tarea.dt) - resto
+
                 else:
                     self.tareas_planificadas.remove(tarea)
+
+
 
     def _agregar(self, tarea):
         "Agrega una nueva tarea para ejecutarse luego."

@@ -12,6 +12,7 @@ import copy
 
 from gi.repository import Gtk
 from gi.repository import Gdk
+from gi.repository import GLib
 from gi.repository import GdkPixbuf
 
 import motor
@@ -54,6 +55,7 @@ class BaseActor(object):
 
     def definir_posicion(self, x, y):
         self.x, self.y = x, y
+        eventos.actualizar.send("update")
 
     def obtener_escala(self):
         return self._escala_x
@@ -61,15 +63,18 @@ class BaseActor(object):
     def definir_escala(self, s):
         self._escala_x = s
         self._escala_y = s
+        eventos.actualizar.send("update")
 
     def definir_escala_x(self, s):
         self._escala_x = s
 
     def definir_escala_y(self, s):
         self._escala_y = s
+        eventos.actualizar.send("update")
 
     def definir_transparencia(self, nuevo_valor):
         self._transparencia = nuevo_valor
+        eventos.actualizar.send("update")
 
     def obtener_transparencia(self):
         return self._transparencia
@@ -79,9 +84,11 @@ class BaseActor(object):
 
     def definir_rotacion(self, r):
         self._rotacion = r
+        eventos.actualizar.send("update")
 
     def set_espejado(self, espejado):
         self._espejado = espejado
+        eventos.actualizar.send("update")
 
 
 class GtkImagen(object):
@@ -126,7 +133,7 @@ class GtkImagen(object):
         motor.context.restore()
 
     def _dibujar_pixbuf(self, context, x, y):
-        Gdk.cairo_set_source_pixbuf(context, self._imagen, self._image.width(), self._image.height())
+        Gdk.cairo_set_source_pixbuf(context, self._imagen, 0, 0)
         context.paint()
 
     def __str__(self):
@@ -173,6 +180,7 @@ class GtkGrilla(GtkImagen):
 
         self.dx = frame_col * self.cuadro_ancho
         self.dy = frame_row * self.cuadro_alto
+        eventos.actualizar.send("update")
 
     def avanzar(self):
         ha_reiniciado = False
@@ -246,7 +254,7 @@ class GtkLienzo(GtkImagen):
     def pintar(self, motor, color):
         r, g, b, a = color.obtener_componentes()
         ancho, alto = motor.obtener_area()
-        context.set_source_rgb(r, g, b)
+        motor.context.set_source_rgb(r, g, b)
         motor.context.rectangle(0, 0, ancho, alto)
 
     def linea(self, motor, x0, y0, x1, y1, color=colores.negro, grosor=1):
@@ -410,8 +418,11 @@ class GtkActor(BaseActor):
         # permite que varios actores usen la misma grilla.
         if isinstance(imagen, GtkGrilla):
             self.imagen = copy.copy(imagen)
+
         else:
             self.imagen = imagen
+
+        eventos.actualizar.send("update")
 
     def obtener_imagen(self):
         return self.imagen
@@ -422,16 +433,21 @@ class GtkActor(BaseActor):
         if self._espejado:
             escala_x *= -1
 
-        if not self.fijo:
-            x = self.x - motor.camara_x
-            y = self.y - motor.camara_y
-        else:
-            x = self.x
-            y = self.y
+        #if not self.fijo:
+        #    x = self.x - motor.camara_x
+        #    y = self.y - motor.camara_y
+        #else:
+        #    x = self.x
+        #    y = self.y
 
+        x = self.x
+        y = self.y
         self.imagen.dibujar(motor, x, y,
                 self.centro_x, self.centro_y,
                 escala_x, escala_y, self._rotacion, self._transparencia)
+
+    def actualizar(self):
+        eventos.actualizar.send("update")
 
 
 class GtkSonido:
@@ -456,11 +472,11 @@ class ActivityBase(activity.Activity, motor.Motor):
         activity.Activity.__init__(self, handle)
         motor.Motor.__init__(self)
 
-        self.box = Gtk.VBox()
-        self.set_canvas(self.box)
+        self.layout = Gtk.VBox()
+        self.set_canvas(self.layout)
 
         self.canvas = Gtk.DrawingArea()
-        self.box.pack_start(self.canvas, False, False, 0)
+        self.layout.pack_start(self.canvas, False, False, 0)
 
         self.canvas.add_events(Gdk.EventMask.POINTER_MOTION_MASK |
                                Gdk.EventMask.BUTTON_PRESS_MASK |
@@ -485,6 +501,8 @@ class ActivityBase(activity.Activity, motor.Motor):
         self.camara_y = 0
 
         self.__fullscreen = False
+
+        eventos.actualizar.connect(self.actualizar_pantalla)
 
     def __make_toolbar(self):
         # toolbar with the new toolbar redesign
@@ -579,8 +597,8 @@ class ActivityBase(activity.Activity, motor.Motor):
     def obtener_grilla(self, ruta, columnas, filas):
         return GtkGrilla(ruta, columnas, filas)
 
-    def actualizar_pantalla(self):
-        self.ventana.update()
+    def actualizar_pantalla(self, *args):
+        GLib.idle_add(self.canvas.queue_draw)
 
     def definir_centro_de_la_camara(self, x, y):
         self.camara_x = x
@@ -609,10 +627,11 @@ class ActivityBase(activity.Activity, motor.Motor):
         self.context = context
 
         alloc = self.canvas.get_allocation()
+        ancho = self.alto * self.ancho_original / self.alto_original
+        alto = self.alto
 
         self.context.set_source_rgb(1, 1, 1)
-        self.context.rectangle(0, 0, self.alto * self.ancho_original / self.alto_original, self.alto)
-        #self.context.rectangle(0, 0, alloc.width, alloc.height)
+        self.context.rectangle(alloc.width / 2 - ancho / 2, 0, ancho, self.alto)
         self.context.fill()
 
         alto = self.alto / float(self.alto_original)
@@ -647,7 +666,7 @@ class ActivityBase(activity.Activity, motor.Motor):
     def realizar_actualizacion_logica(self):
         for x in range(self.fps.actualizar()):
             if not self.pausa_habilitada:
-                eventos.actualizar.send()
+                eventos.actualizar.send("update")
 
                 for actor in actores.todos:
                     actor.pre_actualizar()
@@ -681,6 +700,8 @@ class ActivityBase(activity.Activity, motor.Motor):
 
         self.mouse_x = x
         self.mouse_y = y
+
+        self.actualizar_pantalla()
 
     def keyPressEvent(self, area, event):
         codigo_de_tecla = self.obtener_codigo_de_tecla_normalizado(event.key())

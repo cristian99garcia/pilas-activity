@@ -57,10 +57,13 @@ class Mundo(object):
 
     def actualizar_simuladores(self, evento):
         self.tweener.update(16)
-        self.tareas.actualizar(1/60.0)
+        self.tareas.actualizar(1 / 60.0)
 
         if CON_FISICA:
             self.fisica.actualizar()
+
+        else:
+            self.motor.actualizar_pantalla()
 
         self.colisiones.verificar_colisiones()
 

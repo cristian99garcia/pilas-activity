@@ -11,6 +11,7 @@ from pilas import colores
 
 try:
     import Box2D as box2d
+
 except ImportError:
     print "No esta disponible box2d, se deshabilitara la fisica."
 
@@ -29,6 +30,7 @@ class Fisica(object):
 
             try:
                 self.mundo = box2d.b2World(self.escenario, self.gravedad, True)
+
             except ValueError:
                 print "Solo esta disponible el motor de fisica para box2d 2.0.2b1"
                 raise AttributeError("...")
@@ -107,6 +109,7 @@ class Fisica(object):
 
                 elif tipo_de_figura == box2d.e_circleShape:
                     lienzo.circulo(motor, cuerpo.position.x, cuerpo.position.y, figura.radius, colores.rojo, grosor=grosor)
+
                 else:
                     print "no puedo identificar el tipo de figura."
 
@@ -114,14 +117,14 @@ class Fisica(object):
         return self.mundo.CreateBody(definicion_de_cuerpo)
 
     def crear_suelo(self, (ancho, alto), restitucion=0):
-        self.suelo = Rectangulo(0, -alto/2, ancho, 2, dinamica=False, fisica=self, restitucion=restitucion)
+        self.suelo = Rectangulo(0, -alto / 2, ancho, 2, dinamica=False, fisica=self, restitucion=restitucion)
 
     def crear_techo(self, (ancho, alto), restitucion=0):
-        self.techo = Rectangulo(0, alto/2, ancho, 2, dinamica=False, fisica=self, restitucion=restitucion)
+        self.techo = Rectangulo(0, alto / 2, ancho, 2, dinamica=False, fisica=self, restitucion=restitucion)
 
     def crear_paredes(self, (ancho, alto), restitucion=0):
-        self.pared_izquierda = Rectangulo(-ancho/2, 0, 2, alto, dinamica=False, fisica=self, restitucion=restitucion)
-        self.pared_derecha = Rectangulo(ancho/2, 0, 2, alto, dinamica=False, fisica=self, restitucion=restitucion)
+        self.pared_izquierda = Rectangulo(-ancho / 2, 0, 2, alto, dinamica=False, fisica=self, restitucion=restitucion)
+        self.pared_derecha = Rectangulo(ancho / 2, 0, 2, alto, dinamica=False, fisica=self, restitucion=restitucion)
 
     def eliminar_suelo(self):
         if self.suelo:
@@ -160,7 +163,7 @@ class Fisica(object):
 
         while delta < dy:
 
-            if self.obtener_cuerpos_en(x, y-delta):
+            if self.obtener_cuerpos_en(x, y - delta):
                 return delta
 
             delta += 1
@@ -172,8 +175,8 @@ class Fisica(object):
 
         AABB = box2d.b2AABB()
         f = 1
-        AABB.lowerBound = (x-f, y-f)
-        AABB.upperBound = (x+f, y+f)
+        AABB.lowerBound = (x - f, y - f)
+        AABB.upperBound = (x + f, y + f)
 
         cuantos, cuerpos = self.mundo.Query(AABB, 2)
 
@@ -192,6 +195,7 @@ class Fisica(object):
 
     def definir_gravedad(self, x, y):
         pilas.fisica.definir_gravedad(x, y)
+
 
 class Figura(object):
     """Representa un figura que simula un cuerpo fisico.
