@@ -38,7 +38,7 @@ para iniciar y ejecutar la biblioteca.
 if utils.esta_en_sesion_interactiva():
     utils.cargar_autocompletado()
 
-def iniciar(ancho=640, alto=480, titulo='Pilas', usar_motor='gtk',
+def iniciar(ancho=640, alto=480, titulo='Pilas', usar_motor='sugar',
             rendimiento=60, modo='detectar', economico=True,
             gravedad=(0, -90), pantalla_completa=False, motor=None):
     """
@@ -111,9 +111,10 @@ def __crear_motor(usar_motor):
     Esta es una función interna y no debe ser ejecutada
     excepto por el mismo motor pilas."""
 
-    if usar_motor == 'gtk':
-        from motores import motor_gtk
-        motor = motor_gtk.GtkMotor()
+    if usar_motor == 'sugar':
+        from motores import motor_activity
+        motor = motor_activity.ActivityBase()
+
     else:
         print "El motor multimedia seleccionado (%s) no esta disponible" % (usar_motor)
         print "Las opciones de motores que puedes probar son 'gtk'."

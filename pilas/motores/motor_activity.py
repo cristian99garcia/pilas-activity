@@ -25,6 +25,13 @@ from pilas import fps
 from pilas import simbolos
 from pilas import colores
 
+from sugar3.activity import activity
+from sugar3.graphics.toolbarbox import ToolbarBox
+from sugar3.activity.widgets import ActivityButton
+from sugar3.activity.widgets import TitleEntry
+from sugar3.activity.widgets import StopButton
+from sugar3.activity.widgets import ShareButton
+
 
 class BaseActor(object):
 
@@ -115,11 +122,12 @@ class GtkImagen(object):
         #if transparencia:
         #    motor.context.setOpacity(1 - transparencia/100.0)
 
-        self._dibujar_pixmap(motor.context, -dx, -dy)
+        self._dibujar_pixbuf(motor.context, -dx, -dy)
         motor.context.restore()
 
-    def _dibujar_pixmap(self, context, x, y):
+    def _dibujar_pixbuf(self, context, x, y):
         Gdk.cairo_set_source_pixbuf(context, self._imagen, self._image.width(), self._image.height())
+        context.paint()
 
     def __str__(self):
         nombre_imagen = os.path.basename(self.ruta_original)
@@ -390,6 +398,7 @@ class GtkActor(BaseActor):
 
         if isinstance(imagen, str):
             self.imagen = imagenes.cargar(imagen)
+
         else:
             self.imagen = imagen
 
@@ -441,18 +450,30 @@ class GtkSonido:
             self.sonido.play()
 
 
-class GtkBase(motor.Motor):
+class ActivityBase(activity.Activity, motor.Motor):
 
-    def __init__(self):
+    def __init__(self, handle):
+        activity.Activity.__init__(self, handle)
         motor.Motor.__init__(self)
 
         self.box = Gtk.VBox()
-        self.add(self.box)
+        self.set_canvas(self.box)
 
         self.canvas = Gtk.DrawingArea()
-        self.canvas.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
+        self.box.pack_start(self.canvas, False, False, 0)
+
+        self.canvas.add_events(Gdk.EventMask.POINTER_MOTION_MASK |
+                               Gdk.EventMask.BUTTON_PRESS_MASK |
+                               Gdk.EventMask.BUTTON_RELEASE_MASK |
+                               Gdk.EventMask.KEY_PRESS_MASK |
+                               Gdk.EventMask.KEY_RELEASE_MASK)
+
         self.canvas.connect("draw", self.paintEvent)
-        self.box.pack_start(self.canvas, True, True, 0)
+        self.canvas.connect("button-press-event", self.mousePressEvent)
+        self.canvas.connect("button-release-event", self.mouseReleaseEvent)
+        self.canvas.connect("motion-notify-event", self.mouseMoveEvent)
+        self.canvas.connect("key-press-event", self.keyPressEvent)
+        self.canvas.connect("key-release-event", self.keyReleaseEvent)
 
         self.fps = fps.FPS(60, True)
         self.pausa_habilitada = False
@@ -464,6 +485,35 @@ class GtkBase(motor.Motor):
         self.camara_y = 0
 
         self.__fullscreen = False
+
+    def __make_toolbar(self):
+        # toolbar with the new toolbar redesign
+        toolbar_box = ToolbarBox()
+
+        activity_button = ActivityButton(self)
+        toolbar_box.toolbar.insert(activity_button, 0)
+        activity_button.show()
+
+        title_entry = TitleEntry(self)
+        toolbar_box.toolbar.insert(title_entry, -1)
+        title_entry.show()
+
+        share_button = ShareButton(self)
+        toolbar_box.toolbar.insert(share_button, -1)
+        share_button.show()
+
+        separator = Gtk.SeparatorToolItem()
+        separator.props.draw = False
+        separator.set_expand(True)
+        toolbar_box.toolbar.insert(separator, -1)
+        separator.show()
+
+        stop_button = StopButton(self)
+        toolbar_box.toolbar.insert(stop_button, -1)
+        stop_button.show()
+
+        self.set_toolbar_box(toolbar_box)
+        toolbar_box.show()
 
     def iniciar_ventana(self, ancho, alto, titulo, pantalla_completa):
         self.ancho = ancho
@@ -480,6 +530,9 @@ class GtkBase(motor.Motor):
         else:
             self.show()
 
+        self.canvas.set_size_request(ancho, alto)
+
+        self.__make_toolbar()
         # Activa la invocacion al evento timerEvent.
         #self.startTimer(1000 / 60.0)
 
@@ -553,11 +606,13 @@ class GtkBase(motor.Motor):
         pass
 
     def paintEvent(self, area, context):
-        print("DRAW")
         self.context = context
+
+        alloc = self.canvas.get_allocation()
 
         self.context.set_source_rgb(1, 1, 1)
         self.context.rectangle(0, 0, self.alto * self.ancho_original / self.alto_original, self.alto)
+        #self.context.rectangle(0, 0, alloc.width, alloc.height)
         self.context.fill()
 
         alto = self.alto / float(self.alto_original)
@@ -579,93 +634,99 @@ class GtkBase(motor.Motor):
         return False
 
     def timerEvent(self, event):
-
         if not self.pausa_habilitada:
             try:
                 self.realizar_actualizacion_logica()
+
             except Exception as e:
-                print e
+                pass
 
         # Invoca el dibujado de la pantalla.
         self.update()
 
-
     def realizar_actualizacion_logica(self):
         for x in range(self.fps.actualizar()):
             if not self.pausa_habilitada:
-                eventos.actualizar.send("Qt::timerEvent")
+                eventos.actualizar.send()
 
                 for actor in actores.todos:
                     actor.pre_actualizar()
                     actor.actualizar()
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, area, event):
         self.ancho = event.size().width()
         self.alto = event.size().height()
 
-    def mousePressEvent(self, e):
+    def mousePressEvent(self, area, e):
         escala = self.escala()
-        x, y = utils.convertir_de_posicion_fisica_relativa(e.pos().x()/escala, e.pos().y()/escala)
-        eventos.click_de_mouse.send("Qt::mousePressEvent", x=x, y=y, dx=0, dy=0)
+        x, y = utils.convertir_de_posicion_fisica_relativa(e.x / escala, e.y / escala)
+        eventos.click_de_mouse.send("button-press-event", x=x, y=y, dx=0, dy=0)
 
-    def mouseReleaseEvent(self, e):
+    def mouseReleaseEvent(self, area, e):
         escala = self.escala()
-        x, y = utils.convertir_de_posicion_fisica_relativa(e.pos().x()/escala, e.pos().y()/escala)
-        eventos.termina_click.send("Qt::mouseReleaseEvent", x=x, y=y, dx=0, dy=0)
+        x, y = utils.convertir_de_posicion_fisica_relativa(e.x / escala, e.y / escala)
+        eventos.termina_click.send("button-release-event", x=x, y=y, dx=0, dy=0)
 
-    def wheelEvent(self, e):
-        eventos.mueve_rueda.send("ejecutar", delta=e.delta() / 120)
+    def wheelEvent(self, area, e):
+        #eventos.mueve_rueda.send("scroll-event", delta=e.delta() / 120)
+        # FIXME: Need connect "scroll-event"
+        pass
 
-    def mouseMoveEvent(self, e):
+    def mouseMoveEvent(self, area, e):
         escala = self.escala()
-        x, y = utils.convertir_de_posicion_fisica_relativa(e.pos().x()/escala, e.pos().y()/escala)
+        x, y = utils.convertir_de_posicion_fisica_relativa(e.x / escala, e.y / escala)
         dx, dy = x - self.mouse_x, y - self.mouse_y
-        eventos.mueve_mouse.send("Qt::mouseMoveEvent", x=x, y=y, dx=dx, dy=dy)
+
+        eventos.mueve_mouse.send("motion-notify-event", x=x, y=y, dx=dx, dy=dy)
+
         self.mouse_x = x
         self.mouse_y = y
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, area, event):
         codigo_de_tecla = self.obtener_codigo_de_tecla_normalizado(event.key())
 
-        if event.key() == QtCore.Qt.Key_Escape:
-            eventos.pulsa_tecla_escape.send("Qt::keyPressEvent")
-        if event.key() == QtCore.Qt.Key_P:
+        if event.keyval == Gdk.KEY_Escape:
+            eventos.pulsa_tecla_escape.send("key-press-event")
+
+        if event.keyval == Gdk.KEY_P:
             self.alternar_pausa()
-        if event.key() == QtCore.Qt.Key_F:
+
+        if event.keyval == Gdk.KEY_F:
             self.alternar_pantalla_completa()
 
-        eventos.pulsa_tecla.send("Qt::keyPressEvent", codigo=codigo_de_tecla, texto=event.text())
+        eventos.pulsa_tecla.send("key-press-event", codigo=codigo_de_tecla, texto=event.text())
 
-    def keyReleaseEvent(self, event):
+    def keyReleaseEvent(self, area, event):
         codigo_de_tecla = self.obtener_codigo_de_tecla_normalizado(event.key())
-        eventos.suelta_tecla.send("Qt::keyReleaseEvent", codigo=codigo_de_tecla, texto=event.text())
+        eventos.suelta_tecla.send("key-release-event", codigo=codigo_de_tecla, texto=event.text())
 
-    def obtener_codigo_de_tecla_normalizado(self, tecla_qt):
+    def obtener_codigo_de_tecla_normalizado(self, tecla):
         teclas = {
-            QtCore.Qt.Key_Left: simbolos.IZQUIERDA,
-            QtCore.Qt.Key_Right: simbolos.DERECHA,
-            QtCore.Qt.Key_Up: simbolos.ARRIBA,
-            QtCore.Qt.Key_Down: simbolos.ABAJO,
-            QtCore.Qt.Key_Space: simbolos.SELECCION,
-            QtCore.Qt.Key_Return: simbolos.SELECCION,
-            QtCore.Qt.Key_F1: simbolos.F1,
-            QtCore.Qt.Key_F2: simbolos.F2,
-            QtCore.Qt.Key_F3: simbolos.F3,
-            QtCore.Qt.Key_F4: simbolos.F4,
-            QtCore.Qt.Key_F5: simbolos.F5,
-            QtCore.Qt.Key_F6: simbolos.F6,
-            QtCore.Qt.Key_F7: simbolos.F7,
-            QtCore.Qt.Key_F8: simbolos.F8,
-            QtCore.Qt.Key_F9: simbolos.F9,
-            QtCore.Qt.Key_F10: simbolos.F10,
-            QtCore.Qt.Key_F11: simbolos.F11,
-            QtCore.Qt.Key_F12: simbolos.F12,
+            Gdk.KEY_Left: simbolos.IZQUIERDA,
+            Gdk.KEY_Right: simbolos.DERECHA,
+            Gdk.KEY_Up: simbolos.ARRIBA,
+            Gdk.KEY_Down: simbolos.ABAJO,
+            Gdk.KEY_Space: simbolos.SELECCION,
+            Gdk.KEY_Return: simbolos.SELECCION,
+            Gdk.KEY_F1: simbolos.F1,
+            Gdk.KEY_F2: simbolos.F2,
+            Gdk.KEY_F3: simbolos.F3,
+            Gdk.KEY_F4: simbolos.F4,
+            Gdk.KEY_F5: simbolos.F5,
+            Gdk.KEY_F6: simbolos.F6,
+            Gdk.KEY_F7: simbolos.F7,
+            Gdk.KEY_F8: simbolos.F8,
+            Gdk.KEY_F9: simbolos.F9,
+            Gdk.KEY_F10: simbolos.F10,
+            Gdk.KEY_F11: simbolos.F11,
+            Gdk.KEY_F12: simbolos.F12,
         }
 
-        if teclas.has_key(tecla_qt):
-            return teclas[tecla_qt]
+        if teclas.has_key(tecla):
+            return teclas[tecla]
+
         else:
-            return tecla_qt
+            return tecla
 
     def escala(self):
         "Obtiene la proporcion de cambio de escala de la pantalla"
@@ -675,15 +736,14 @@ class GtkBase(motor.Motor):
         ancho = 0
         alto = 0
 
-        fuente = QtGui.QFont()
-        fuente.setPointSize(magnitud)
-        metrica = QtGui.QFontMetrics(fuente)
+        self.context.set_font_size(magnitud)
 
         lineas = texto.split('\n')
 
         for linea in lineas:
-            ancho = max(ancho, metrica.width(linea))
-            alto += metrica.height()
+            extents = self.context.get_text_extents(texto)
+            ancho = max(ancho, extents.width)
+            alto += extents.height
 
         return ancho, alto
 
@@ -691,19 +751,23 @@ class GtkBase(motor.Motor):
         if self.pausa_habilitada:
             self.pausa_habilitada = False
             self.actor_pausa.eliminar()
+
         else:
             self.pausa_habilitada = True
             self.actor_pausa = actores.Pausa()
 
     def ocultar_puntero_del_mouse(self):
-        bitmap = QtGui.QBitmap(1, 1)
-        nuevo_cursor = QtGui.QCursor(bitmap, bitmap)
-        self.setCursor(QtGui.QCursor(nuevo_cursor))
+        self.establecer_puntero_del_mouse(Gdk.CursorType.BLANK_CURSOR)
 
+    def mostrar_puntero_del_mouse(self, cursor=Gdk.CursorType.ARROW):
+        self.establecer_puntero_del_mouse(cursor)
 
-class GtkMotor(GtkBase, Gtk.Window):
+    def establecer_puntero_del_mouse(self, cursor):
+        if not self.canvas.get_realized():
+            print("El area de dibujado tiene que ser visible para establecer un puntero")
+            return
 
-    def __init__(self):
-        GtkBase.__init__(self)
-        Gtk.Window.__init__(self)
+        cursor = Gdk.Cursor.new_from_name(Gdk.Display.get_default(), cursor)
+        win = self.canvas.get_window()
+        win.set_curosr(cursor)
 
