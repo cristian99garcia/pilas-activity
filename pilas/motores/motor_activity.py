@@ -315,72 +315,72 @@ class GtkSuperficie(GtkImagen):
         self._imagen.fill(QtGui.QColor(r, g, b, a))
 
     def pintar_parte_de_imagen(self, imagen, origen_x, origen_y, ancho, alto, x, y):
-        #self.canvas.begin(self._imagen)
-        #self.canvas.drawPixmap(x, y, imagen._imagen, origen_x, origen_y, ancho, alto)
-        #self.canvas.end()
+        #self.area.begin(self._imagen)
+        #self.area.drawPixmap(x, y, imagen._imagen, origen_x, origen_y, ancho, alto)
+        #self.area.end()
         pass
 
     def pintar_imagen(self, imagen, x=0, y=0):
         self.pintar_parte_de_imagen(imagen, 0, 0, imagen.ancho(), imagen.alto(), x, y)
 
     def texto(self, cadena, x=0, y=0, magnitud=10, fuente=None, color=colores.negro):
-        self.canvas.begin(self._imagen)
+        self.area.begin(self._imagen)
         r, g, b, a = color.obtener_componentes()
-        self.canvas.setPen(QtGui.QColor(r, g, b))
+        self.area.setPen(QtGui.QColor(r, g, b))
         dx = x
         dy = y
 
         if not fuente:
-            fuente = self.canvas.font().family()
+            fuente = self.area.font().family()
 
         font = QtGui.QFont(fuente, magnitud)
-        self.canvas.setFont(font)
+        self.area.setFont(font)
         metrica = QtGui.QFontMetrics(font)
 
         for line in cadena.split('\n'):
-            self.canvas.drawText(dx, dy, line)
+            self.area.drawText(dx, dy, line)
             dy += metrica.height()
 
-        self.canvas.end()
+        self.area.end()
 
     def circulo(self, x, y, radio, color=colores.negro, relleno=False, grosor=1):
-        self.canvas.begin(self._imagen)
+        self.area.begin(self._imagen)
 
         r, g, b, a = color.obtener_componentes()
         color = QtGui.QColor(r, g, b)
         pen = QtGui.QPen(color, grosor)
-        self.canvas.setPen(pen)
+        self.area.setPen(pen)
 
         if relleno:
-            self.canvas.setBrush(color)
+            self.area.setBrush(color)
 
-        self.canvas.drawEllipse(x -radio, y-radio, radio*2, radio*2)
-        self.canvas.end()
+        self.area.drawEllipse(x -radio, y-radio, radio*2, radio*2)
+        self.area.end()
 
     def rectangulo(self, x, y, ancho, alto, color=colores.negro, relleno=False, grosor=1):
-        self.canvas.begin(self._imagen)
+        self.area.begin(self._imagen)
 
         r, g, b, a = color.obtener_componentes()
         color = QtGui.QColor(r, g, b)
         pen = QtGui.QPen(color, grosor)
-        self.canvas.setPen(pen)
+        self.area.setPen(pen)
 
         if relleno:
-            self.canvas.setBrush(color)
+            self.area.setBrush(color)
 
-        self.canvas.drawRect(x, y, ancho, alto)
-        self.canvas.end()
+        self.area.drawRect(x, y, ancho, alto)
+        self.area.end()
 
     def linea(self, x, y, x2, y2, color=colores.negro, grosor=1):
-        self.canvas.begin(self._imagen)
+        self.area.begin(self._imagen)
 
         r, g, b, a = color.obtener_componentes()
         color = QtGui.QColor(r, g, b)
         pen = QtGui.QPen(color, grosor)
-        self.canvas.setPen(pen)
+        self.area.setPen(pen)
 
-        self.canvas.drawLine(x, y, x2, y2)
-        self.canvas.end()
+        self.area.drawLine(x, y, x2, y2)
+        self.area.end()
 
     def poligono(self, puntos, color, grosor, cerrado=False):
         x, y = puntos[0]
@@ -475,21 +475,21 @@ class ActivityBase(activity.Activity, motor.Motor):
         self.layout = Gtk.VBox()
         self.set_canvas(self.layout)
 
-        self.canvas = Gtk.DrawingArea()
-        self.layout.pack_start(self.canvas, False, False, 0)
+        self.area = Gtk.DrawingArea()
+        self.layout.pack_start(self.area, False, False, 0)
 
-        self.canvas.add_events(Gdk.EventMask.POINTER_MOTION_MASK |
+        self.area.add_events(Gdk.EventMask.POINTER_MOTION_MASK |
                                Gdk.EventMask.BUTTON_PRESS_MASK |
                                Gdk.EventMask.BUTTON_RELEASE_MASK |
                                Gdk.EventMask.KEY_PRESS_MASK |
                                Gdk.EventMask.KEY_RELEASE_MASK)
 
-        self.canvas.connect("draw", self.paintEvent)
-        self.canvas.connect("button-press-event", self.mousePressEvent)
-        self.canvas.connect("button-release-event", self.mouseReleaseEvent)
-        self.canvas.connect("motion-notify-event", self.mouseMoveEvent)
-        self.canvas.connect("key-press-event", self.keyPressEvent)
-        self.canvas.connect("key-release-event", self.keyReleaseEvent)
+        self.area.connect("draw", self.paintEvent)
+        self.area.connect("button-press-event", self.mousePressEvent)
+        self.area.connect("button-release-event", self.mouseReleaseEvent)
+        self.area.connect("motion-notify-event", self.mouseMoveEvent)
+        self.area.connect("key-press-event", self.keyPressEvent)
+        self.area.connect("key-release-event", self.keyReleaseEvent)
 
         self.fps = fps.FPS(60, True)
         self.pausa_habilitada = False
@@ -548,7 +548,7 @@ class ActivityBase(activity.Activity, motor.Motor):
         else:
             self.show()
 
-        self.canvas.set_size_request(ancho, alto)
+        self.area.set_size_request(ancho, alto)
 
         self.__make_toolbar()
         # Activa la invocacion al evento timerEvent.
@@ -598,7 +598,7 @@ class ActivityBase(activity.Activity, motor.Motor):
         return GtkGrilla(ruta, columnas, filas)
 
     def actualizar_pantalla(self, *args):
-        GLib.idle_add(self.canvas.queue_draw)
+        GLib.idle_add(self.area.queue_draw)
 
     def definir_centro_de_la_camara(self, x, y):
         self.camara_x = x
@@ -626,7 +626,7 @@ class ActivityBase(activity.Activity, motor.Motor):
     def paintEvent(self, area, context):
         self.context = context
 
-        alloc = self.canvas.get_allocation()
+        alloc = self.area.get_allocation()
         ancho = self.alto * self.ancho_original / self.alto_original
         alto = self.alto
 
@@ -762,7 +762,7 @@ class ActivityBase(activity.Activity, motor.Motor):
         lineas = texto.split('\n')
 
         for linea in lineas:
-            extents = self.context.get_text_extents(texto)
+            extents = self.context.text_extents(texto)
             ancho = max(ancho, extents.width)
             alto += extents.height
 
@@ -784,11 +784,11 @@ class ActivityBase(activity.Activity, motor.Motor):
         self.establecer_puntero_del_mouse(cursor)
 
     def establecer_puntero_del_mouse(self, cursor):
-        if not self.canvas.get_realized():
+        if not self.area.get_realized():
             print("El area de dibujado tiene que ser visible para establecer un puntero")
             return
 
         cursor = Gdk.Cursor.new_from_name(Gdk.Display.get_default(), cursor)
-        win = self.canvas.get_window()
+        win = self.area.get_window()
         win.set_curosr(cursor)
 
