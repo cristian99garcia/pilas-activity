@@ -48,7 +48,8 @@ class PilasActivity(ActivityBase):
 
         #Crear actor
         self.mono = pilas.actores.Mono()
-        self.mono.x = 200
+        self.mono.x = self.ancho / 2 - self.mono.imagen.ancho() / 4
+        self.mono.y = 0 + self.mono.imagen.alto() / 2
         pilas.eventos.click_de_mouse.conectar(self.sonreir)
 
         # Agrega la Consola

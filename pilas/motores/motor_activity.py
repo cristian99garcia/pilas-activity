@@ -340,7 +340,8 @@ class GtkSuperficie(GtkImagen):
         #self.motor.area.begin(self._imagen)
         #self.motor.area.drawPixmap(x, y, imagen._imagen, origen_x, origen_y, ancho, alto)
         #self.motor.area.end()
-        pass
+        Gdk.cairo_set_source_pixbuf(self.motor.context, imagen._imagen, x, y)
+        self.motor.context.paint()
 
     def pintar_imagen(self, imagen, x=0, y=0):
         self.pintar_parte_de_imagen(imagen, 0, 0, imagen.ancho, imagen.alto, x, y)
@@ -538,10 +539,10 @@ class ActivityBase(activity.Activity, motor.Motor):
         self.layout.pack_start(self.area, False, False, 0)
 
         self.area.add_events(Gdk.EventMask.POINTER_MOTION_MASK |
-                               Gdk.EventMask.BUTTON_PRESS_MASK |
-                               Gdk.EventMask.BUTTON_RELEASE_MASK |
-                               Gdk.EventMask.KEY_PRESS_MASK |
-                               Gdk.EventMask.KEY_RELEASE_MASK)
+                             Gdk.EventMask.BUTTON_PRESS_MASK |
+                             Gdk.EventMask.BUTTON_RELEASE_MASK |
+                             Gdk.EventMask.KEY_PRESS_MASK |
+                             Gdk.EventMask.KEY_RELEASE_MASK)
 
         self.area.connect("draw", self.paintEvent)
         self.area.connect("button-press-event", self.mousePressEvent)
