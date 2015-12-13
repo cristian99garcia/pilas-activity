@@ -343,6 +343,7 @@ class GtkSuperficie(GtkImagen):
 
         #Gdk.cairo_set_source_pixbuf(self.motor.context, imagen._imagen, x, y)
         #self.motor.context.paint()
+        print("It's broken")
 
     def pintar_imagen(self, imagen, x=0, y=0):
         self.pintar_parte_de_imagen(imagen, 0, 0, imagen.ancho, imagen.alto, x, y)
