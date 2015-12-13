@@ -340,8 +340,9 @@ class GtkSuperficie(GtkImagen):
         #self.motor.area.begin(self._imagen)
         #self.motor.area.drawPixmap(x, y, imagen._imagen, origen_x, origen_y, ancho, alto)
         #self.motor.area.end()
-        Gdk.cairo_set_source_pixbuf(self.motor.context, imagen._imagen, x, y)
-        self.motor.context.paint()
+
+        #Gdk.cairo_set_source_pixbuf(self.motor.context, imagen._imagen, x, y)
+        #self.motor.context.paint()
 
     def pintar_imagen(self, imagen, x=0, y=0):
         self.pintar_parte_de_imagen(imagen, 0, 0, imagen.ancho, imagen.alto, x, y)
