@@ -81,11 +81,14 @@ class Actor(object, Estudiante):
         if type(x) == str:
             if x not in IZQUIERDA + CENTRO + DERECHA:
                 raise Exception("No puedes definir '%s' como eje horizontal." %(x))
+
             x = self._interpretar_y_convertir_posicion(x, self.obtener_ancho())
+
         if type(y) == str:
             if y not in ARRIBA + CENTRO + ABAJO:
                 raise Exception("No puedes definir '%s' como eje vertical." %(y))
-            y = self._interpretar_y_convertir_posicion(y, self.obtener_alto())            
+
+            y = self._interpretar_y_convertir_posicion(y, self.obtener_alto())
 
         self._centro = (x, y)
         self._actor.definir_centro(x, y)
@@ -93,10 +96,13 @@ class Actor(object, Estudiante):
     def _interpretar_y_convertir_posicion(self, posicion, maximo_valor):
         if posicion in IZQUIERDA + ARRIBA:
             return 0
+
         elif posicion in CENTRO:
             return int(maximo_valor / 2.0)
+
         elif posicion in DERECHA + ABAJO:
             return maximo_valor
+
         else:
             raise Exception("El valor '%s' no corresponde a una posicion, use numeros o valores como 'izquierda', 'arriba' etc." %(posicion))
 
@@ -359,10 +365,10 @@ class Actor(object, Estudiante):
         return duplicado
 
     def obtener_ancho(self):
-        return self.imagen.ancho()
+        return self.imagen.obtener_ancho()
 
     def obtener_alto(self):
-        return self.imagen.alto()
+        return self.imagen.obtener_alto()
 
     ancho = property(obtener_ancho)
     alto = property(obtener_alto)

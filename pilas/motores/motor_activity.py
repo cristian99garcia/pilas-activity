@@ -58,12 +58,14 @@ class BaseActor(object):
         eventos.actualizar.send("update")
 
     def obtener_escala(self):
-        return self._escala_x
+        return 1 #self._escala_x
 
     def definir_escala(self, s):
-        self._escala_x = s
-        self._escala_y = s
-        eventos.actualizar.send("update")
+        #self._escala_x = s
+        #self._escala_y = s
+        #eventos.actualizar.send("update")
+        self._escala_x = 1
+        self._escala_y = 1
 
     def definir_escala_x(self, s):
         self._escala_x = s
@@ -102,6 +104,12 @@ class GtkImagen(object):
 
     def alto(self):
         return self._imagen.get_height()
+
+    def obtener_ancho(self):
+        return self.ancho()
+
+    def obtener_alto(self):
+        return self.alto()
 
     def centro(self):
         "Retorna una tupla con la coordenada del punto medio del la imagen."
@@ -219,13 +227,19 @@ class GtkTexto(GtkImagen):
         for line in lines:
             extents = motor.context.text_extents(line)
             motor.context.show_text(dx, dy + self._alto, line)
-            dy += extents.height()
+            dy += extents[3]
 
     def ancho(self):
         return self._ancho
 
     def alto(self):
         return self._alto
+
+    def obtener_ancho(self):
+        return self.ancho()
+
+    def obtener_alto(self):
+        return self.alto()
 
 
 class GtkLienzo(GtkImagen):
@@ -306,81 +320,85 @@ class GtkLienzo(GtkImagen):
 
 class GtkSuperficie(GtkImagen):
 
-    def __init__(self, ancho, alto):
+    def __init__(self, ancho, alto, motor):
         self.ancho = ancho
         self.alto = alto
+        self.motor = motor
+
+    def obtener_ancho(self):
+        return self.ancho
+
+    def obtener_alto(self):
+        return self.alto
 
     def pintar(self, color):
         r, g, b, a = color.obtener_componentes()
-        self._imagen.fill(QtGui.QColor(r, g, b, a))
+        self.motor.context.set_source_rgb(r, g, b)
+        self.motor.context.rectangle(0, 0, self.obtener_ancho(), self.obtener_alto())
 
     def pintar_parte_de_imagen(self, imagen, origen_x, origen_y, ancho, alto, x, y):
-        #self.area.begin(self._imagen)
-        #self.area.drawPixmap(x, y, imagen._imagen, origen_x, origen_y, ancho, alto)
-        #self.area.end()
+        #self.motor.area.begin(self._imagen)
+        #self.motor.area.drawPixmap(x, y, imagen._imagen, origen_x, origen_y, ancho, alto)
+        #self.motor.area.end()
         pass
 
     def pintar_imagen(self, imagen, x=0, y=0):
-        self.pintar_parte_de_imagen(imagen, 0, 0, imagen.ancho(), imagen.alto(), x, y)
+        self.pintar_parte_de_imagen(imagen, 0, 0, imagen.ancho, imagen.alto, x, y)
 
     def texto(self, cadena, x=0, y=0, magnitud=10, fuente=None, color=colores.negro):
-        self.area.begin(self._imagen)
+        #self.motor.area.begin(self._imagen)
         r, g, b, a = color.obtener_componentes()
-        self.area.setPen(QtGui.QColor(r, g, b))
+        self.motor.context.set_source_rgb(r, g, b)
+
         dx = x
         dy = y
 
         if not fuente:
-            fuente = self.area.font().family()
+            fuente = self.motor.context.get_font_face()
 
-        font = QtGui.QFont(fuente, magnitud)
-        self.area.setFont(font)
-        metrica = QtGui.QFontMetrics(font)
+        self.motor.context.set_font_face(fuente)
+        self.motor.context.set_font_size(magnitud)
 
         for line in cadena.split('\n'):
-            self.area.drawText(dx, dy, line)
-            dy += metrica.height()
+            extents = self.motor.context.text_extents(line)
+            self.motor.context.move_to(dx, dy)
+            self.motor.context.show_text(line)
+            dy += extents[3]
 
-        self.area.end()
+            self.motor.context.move_to(dx, dy)
+            self.motor.context.show_text(cadena)
 
     def circulo(self, x, y, radio, color=colores.negro, relleno=False, grosor=1):
-        self.area.begin(self._imagen)
-
         r, g, b, a = color.obtener_componentes()
-        color = QtGui.QColor(r, g, b)
-        pen = QtGui.QPen(color, grosor)
-        self.area.setPen(pen)
+        self.motor.context.set_source_rgb(r, g, b)
+        self.motor.context.set_line_width(grosor)
+        self.motor.context.arc(x -radio, y - radio, radio * 2, radio * 2)
 
         if relleno:
-            self.area.setBrush(color)
+            self.motor.context.fill()
 
-        self.area.drawEllipse(x -radio, y-radio, radio*2, radio*2)
-        self.area.end()
+        else:
+            self.motor.context.stroke()
 
     def rectangulo(self, x, y, ancho, alto, color=colores.negro, relleno=False, grosor=1):
-        self.area.begin(self._imagen)
-
         r, g, b, a = color.obtener_componentes()
-        color = QtGui.QColor(r, g, b)
-        pen = QtGui.QPen(color, grosor)
-        self.area.setPen(pen)
+        self.motor.context.set_source_rgb(r, g, b)
+        self.motor.context.set_line_width(grosor)
+        self.area.rectangle(x, y, ancho, alto)
 
         if relleno:
-            self.area.setBrush(color)
+            self.motor.context.fill()
 
-        self.area.drawRect(x, y, ancho, alto)
-        self.area.end()
+        else:
+            self.motor.context.stroke()
 
     def linea(self, x, y, x2, y2, color=colores.negro, grosor=1):
-        self.area.begin(self._imagen)
-
         r, g, b, a = color.obtener_componentes()
-        color = QtGui.QColor(r, g, b)
-        pen = QtGui.QPen(color, grosor)
-        self.area.setPen(pen)
+        self.motor.context.set_source_rgb(r, g, b)
+        self.motor.context.set_line_width(grosor)
 
-        self.area.drawLine(x, y, x2, y2)
-        self.area.end()
+        self.motor.context.move_to(x, y)
+        self.motor.context.line_to(x2, y2)
 
     def poligono(self, puntos, color, grosor, cerrado=False):
         x, y = puntos[0]
@@ -397,7 +415,9 @@ class GtkSuperficie(GtkImagen):
         self.circulo(x, y, 3, color=color, relleno=True)
 
     def limpiar(self):
-        self._imagen.fill(QtGui.QColor(0, 0, 0, 0))
+        self.motor.context.set_source_rgb(0, 0, 0)
+        self.motor.context.rectangle(0, 0, self.alto, self.ancho)
+        self.motor.context.fill()
 
 
 class GtkActor(BaseActor):
@@ -466,6 +486,45 @@ class GtkSonido:
             self.sonido.play()
 
 
+class Fondo(object):
+
+    def __init__(self, r=1, g=1, b=1):
+        self.r = r
+        self.g = g
+        self.b = b
+
+    def pintar(self, motor, x, y, ancho, alto):
+        motor.context.set_source_rgb(self.r, self.g, self.b)
+        motor.context.rectangle(x, y, ancho, alto)
+        motor.context.fill()
+
+    def establecer_rojo(self, valor):
+        "Establce el valor de rojo. Valor: dentro de 0 y 1"
+        self.r = valor
+        eventos.actualizar.send("update")
+
+    def establecer_verde(self, valor):
+        "Establece el valor de verde. Valor: dentro de 0 y 1"
+        self.g = valor
+        eventos.actualizar.send("update")
+
+    def establecer_azul(self, valor):
+        "Establece el valor de azul. Valor: dentro de 0 y 1"
+        self.b = valor
+        eventos.actualizar.send("update")
+
+    def establecer_color(self, r, g, b):
+        """
+        Establece los valores del color (r: Rojo, g: Verde, b: Azul
+        Todos deben ser valores entre 0 y 1
+        """
+
+        self.r = r
+        self.g = g
+        self.b = b
+        eventos.actualizar.send("update")
+
+
 class ActivityBase(activity.Activity, motor.Motor):
 
     def __init__(self, handle):
@@ -499,6 +558,7 @@ class ActivityBase(activity.Activity, motor.Motor):
         self.mouse_y = 0
         self.camara_x = 0
         self.camara_y = 0
+        self.fondo = Fondo()
 
         self.__fullscreen = False
 
@@ -617,7 +677,7 @@ class ActivityBase(activity.Activity, motor.Motor):
         return GtkLienzo()
 
     def obtener_superficie(self, ancho, alto):
-        return GtkSuperficie(ancho, alto)
+        return GtkSuperficie(ancho, alto, self)
 
     def ejecutar_bucle_principal(self, mundo, ignorar_errores):
         #sys.exit(self.app.exec_())
@@ -630,9 +690,7 @@ class ActivityBase(activity.Activity, motor.Motor):
         ancho = self.alto * self.ancho_original / self.alto_original
         alto = self.alto
 
-        self.context.set_source_rgb(1, 1, 1)
-        self.context.rectangle(alloc.width / 2 - ancho / 2, 0, ancho, self.alto)
-        self.context.fill()
+        self.fondo.pintar(self, alloc.width / 2 - ancho / 2, 0, ancho, self.alto)
 
         alto = self.alto / float(self.alto_original)
         self.context.scale(alto, alto)
@@ -763,8 +821,8 @@ class ActivityBase(activity.Activity, motor.Motor):
 
         for linea in lineas:
             extents = self.context.text_extents(texto)
-            ancho = max(ancho, extents.width)
-            alto += extents.height
+            ancho = max(ancho, extents[2])
+            alto += extents[3]
 
         return ancho, alto
 

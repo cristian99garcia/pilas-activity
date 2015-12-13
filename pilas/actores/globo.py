@@ -37,6 +37,7 @@ class Globo(Actor):
     def cuando_quieren_avanzar(self, *k):
         if self.dialogo:
             self.dialogo.avanzar_al_siguiente_dialogo()
+
         else:
             self.eliminar()
             
